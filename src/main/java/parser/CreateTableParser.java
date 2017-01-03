@@ -2,6 +2,7 @@ package parser;
 
 import entity.GeometryColumnsEntity;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import util.DBUtil;
@@ -12,6 +13,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 文件描述：
@@ -57,23 +59,28 @@ public class CreateTableParser extends SpatialSqlParser {
              * add info into geometry_column
              */
             if (ParserUtil.isGeometryType(definition)) {
+                String geometryType = definition.getColDataType().getDataType();
                 /**
                  * 设置VARCHAR(8000)
                  */
-                definition.getColDataType().setDataType("VARCHAR(8000)");
+                ColDataType colDataType = new ColDataType();
+                colDataType.setDataType("varchar(8000)");
+                definition.setColDataType(colDataType);
+//                definition.getColDataType().setDataType("VARCHAR(8000)");
                 GeometryColumnsEntity entity = new GeometryColumnsEntity();
                 entity.setSrid(srid);
                 if (schemaName != null) entity.setSchemaName(schemaName);
                 if (tableName != null) entity.setTableName(tableName);
                 entity.setGeometryColumn(definition.getColumnName());
-                entity.setType(definition.getColDataType().getDataType());
+                entity.setType(geometryType);
                 //设置成default=2
                 entity.setCoordinateDimension(2);
                 list.add(entity);
                 addGeometryColumn(entity, connection);
             }
         }
-        return createTable.toString();
+        String phoenixSql = createTable.toString().toUpperCase();
+        return phoenixSql;
     }
 
     /**
@@ -84,19 +91,22 @@ public class CreateTableParser extends SpatialSqlParser {
      * @return
      * @throws SQLException
      */
-    private boolean addGeometryColumn(GeometryColumnsEntity entity, Connection connection) {
+    private int addGeometryColumn(GeometryColumnsEntity entity, Connection connection) {
         Statement statement = null;
-        boolean res = false;
+        int res = 0;
         try {
             statement = connection.createStatement();
             StringBuffer sb = new StringBuffer();
-            sb.append("UPSERT INTO GEOMETRY_COLUMN VALUES ( ");
-            sb.append(entity.getTableName() + " ,");
-            sb.append(entity.getGeometryColumn() + " ,");
-            sb.append(entity.getType() + " ,");
+            UUID uuid = UUID.randomUUID();
+            sb.append("UPSERT INTO MZ_GEOMETRY_COLUMN ( id ,f_table_name,f_geometry_column,type,coordinate_dimension,srid) VALUES ( ");
+            sb.append("'" + uuid.toString() + "'" + " ,");
+
+            sb.append("'" + entity.getTableName() + "' ,");
+            sb.append("'" + entity.getGeometryColumn() + "'" + " ,");
+            sb.append("'" + entity.getType() + "' ,");
             sb.append(entity.getCoordinateDimension() + " ,");
             sb.append(entity.getSrid() + " )");
-            res = statement.execute(sb.toString());
+            res = statement.executeUpdate(sb.toString());
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {

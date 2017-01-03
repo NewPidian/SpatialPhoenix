@@ -8,6 +8,7 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 import parser.CreateTableParser;
 import parser.SelectParser;
 import parser.SpatialSqlParser;
+import parser.UpsertParser;
 import util.DBUtil;
 
 import java.io.StringReader;
@@ -62,11 +63,20 @@ public class SpatialPhoenixStatement {
      * @return
      * @throws SQLException
      */
-    public boolean executeCreate(String statement, Connection connection) throws SQLException, JSQLParserException {
-        SpatialSqlParser parser = new CreateTableParser();
-        List<GeometryColumnsEntity> entities = new ArrayList<>();
-        String phoenixSql = parser.parse(statement, connection, entities);
-        return executePhoenixSql(phoenixSql, connection);
+    public int executeCreate(String statement, Connection connection) throws SQLException, JSQLParserException {
+        int res = 0;
+        try {
+            connection.setAutoCommit(false);
+            SpatialSqlParser parser = new CreateTableParser();
+            List<GeometryColumnsEntity> entities = new ArrayList<>();
+            String phoenixSql = parser.parse(statement, connection, entities);
+            res = executePhoenixSql(phoenixSql, connection);
+            connection.commit();
+        } catch (Exception e) {
+            connection.rollback();
+            throw new SQLException(e);
+        }
+        return res;
     }
 
     /**
@@ -76,13 +86,18 @@ public class SpatialPhoenixStatement {
      * @return
      * @throws SQLException
      */
-    public boolean executeUpsert(String statement) throws SQLException {
-        GeometryColumnsEntity entity = new GeometryColumnsEntity();
+    public boolean executeUpsert(String statement, Connection conn) throws SQLException, JSQLParserException {
+        conn.setAutoCommit(true);
+        SpatialSqlParser parser = new UpsertParser();
+        List<GeometryColumnsEntity> entities = new ArrayList<>();
+        String phoenixSql = parser.parse(statement, conn, entities);
+        
         return false;
     }
 
 
     private ResultSet executeQueryPhoenixSql(String phoenixSql, Connection connection) throws SQLException {
+        connection.setAutoCommit(true);
         ResultSet rs = null;
         Statement statement = connection.createStatement();
         try {
@@ -95,11 +110,12 @@ public class SpatialPhoenixStatement {
         return rs;
     }
 
-    private boolean executePhoenixSql(String phoenixSql, Connection connection) throws SQLException {
-        boolean rs = false;
+    private int executePhoenixSql(String phoenixSql, Connection connection) throws SQLException {
+        connection.setAutoCommit(true);
+        int rs = 0;
         Statement statement = connection.createStatement();
         try {
-            rs = statement.execute(phoenixSql);
+            rs = statement.executeUpdate(phoenixSql);
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
