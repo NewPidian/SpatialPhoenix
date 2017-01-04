@@ -7,6 +7,7 @@ import net.sf.jsqlparser.statement.Statement;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -38,5 +39,5 @@ public abstract class SpatialSqlParser {
      * @return
      * @throws JSQLParserException
      */
-    public abstract String parse(String statement, Connection connection, List<GeometryColumnsEntity> list) throws JSQLParserException;
+    public abstract String parse(String statement, Connection connection, List<GeometryColumnsEntity> list) throws JSQLParserException, SQLException;
 }

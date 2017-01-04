@@ -21,7 +21,7 @@ public class GeometryColumnsUtil {
      * @return
      */
     public static List<GeometryColumnsEntity> getEntityByTableName(String tableName, Connection connection) throws SQLException {
-        String sql = "select * from geometry_column where f_table_name=" + tableName + ";";
+        String sql = "select * from mz_geometry_column where f_table_name= '" + tableName + "'";
         Statement statement = connection.createStatement();
         ResultSet rs = statement.executeQuery(sql);
         List<GeometryColumnsEntity> list = new ArrayList<GeometryColumnsEntity>();

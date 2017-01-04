@@ -2,6 +2,7 @@ package deparser;
 
 import entity.GeometryColumnsEntity;
 import execute.SpatialPhoenixResultSet;
+import org.apache.phoenix.jdbc.PhoenixResultSet;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,14 +13,14 @@ import java.util.List;
  * 作者： bamboo
  * 时间： 2016/12/23
  */
-public class SelectDeparser extends SpatialSqlDeparser {
+public class SelectDeParser extends SpatialSqlDeParser {
 
-    public SpatialPhoenixResultSet deparser(ResultSet rs) throws SQLException {
-        return (SpatialPhoenixResultSet) rs;
+    public SpatialPhoenixResultSet deParser(PhoenixResultSet rs) throws SQLException {
+        return new SpatialPhoenixResultSet(rs);
     }
 
     @Override
-    public SpatialPhoenixResultSet deparser(ResultSet rs, List<GeometryColumnsEntity> list) throws SQLException {
-        return (SpatialPhoenixResultSet) rs;
+    public SpatialPhoenixResultSet deParser(PhoenixResultSet rs, List<GeometryColumnsEntity> list) throws SQLException {
+        return new SpatialPhoenixResultSet(rs);
     }
 }

@@ -1,17 +1,16 @@
 package execute;
 
-import deparser.SelectDeparser;
-import deparser.SpatialSqlDeparser;
+import deparser.SelectDeParser;
+import deparser.SpatialSqlDeParser;
 import entity.GeometryColumnsEntity;
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.statement.create.table.CreateTable;
+import org.apache.phoenix.jdbc.PhoenixResultSet;
 import parser.CreateTableParser;
 import parser.SelectParser;
 import parser.SpatialSqlParser;
 import parser.UpsertParser;
 import util.DBUtil;
 
-import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,6 +32,7 @@ public class SpatialPhoenixStatement {
 
     /**
      * 执行查询
+     * Phoenix目前不支持联合查询
      *
      * @param statement
      * @param connection
@@ -45,12 +45,11 @@ public class SpatialPhoenixStatement {
          * 解析的时候将获取元数据信息
          */
         SpatialSqlParser parser = new SelectParser();
-        SpatialSqlDeparser deparser = new SelectDeparser();
-        List<GeometryColumnsEntity> list = new ArrayList<>();
+        SpatialSqlDeParser deParser = new SelectDeParser();
+        List<GeometryColumnsEntity> list = null;
         String phoenixSql = parser.parse(statement, connection, list);
-        ResultSet resultSet = executeQueryPhoenixSql(phoenixSql, connection);
-        SpatialPhoenixResultSet spatialPhoenixResultSet = deparser.deparser(resultSet, list);
-        DBUtil.closeConnection(connection);
+        PhoenixResultSet resultSet = executeQueryPhoenixSql(phoenixSql, connection);
+        SpatialPhoenixResultSet spatialPhoenixResultSet = deParser.deParser(resultSet, list);
         return spatialPhoenixResultSet;
     }
 
@@ -86,17 +85,17 @@ public class SpatialPhoenixStatement {
      * @return
      * @throws SQLException
      */
-    public boolean executeUpsert(String statement, Connection conn) throws SQLException, JSQLParserException {
+    public int executeUpsert(String statement, Connection conn) throws SQLException, JSQLParserException {
         conn.setAutoCommit(true);
         SpatialSqlParser parser = new UpsertParser();
         List<GeometryColumnsEntity> entities = new ArrayList<>();
         String phoenixSql = parser.parse(statement, conn, entities);
-        
-        return false;
+        int res = executePhoenixSql(phoenixSql, conn);
+        return res;
     }
 
 
-    private ResultSet executeQueryPhoenixSql(String phoenixSql, Connection connection) throws SQLException {
+    private PhoenixResultSet executeQueryPhoenixSql(String phoenixSql, Connection connection) throws SQLException {
         connection.setAutoCommit(true);
         ResultSet rs = null;
         Statement statement = connection.createStatement();
@@ -104,10 +103,8 @@ public class SpatialPhoenixStatement {
             rs = statement.executeQuery(phoenixSql);
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            DBUtil.closeStatement(statement);
         }
-        return rs;
+        return (PhoenixResultSet) rs;
     }
 
     private int executePhoenixSql(String phoenixSql, Connection connection) throws SQLException {
